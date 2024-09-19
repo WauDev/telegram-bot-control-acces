@@ -58,7 +58,7 @@ function registerUser(chatId, userId) {
   if (db.chats[chatId]) {
     db.chats[chatId].users_id[userId] = {
       data_registation: new Date().toISOString(),
-      user_first_name: "Имя пользователя", // Здесь должно быть реальное имя
+      user_first_name: "Имя пользователя",
       user_id: userId,
       access_control: 1
     };
