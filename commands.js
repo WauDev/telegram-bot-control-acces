@@ -20,14 +20,26 @@ function readCommands() {
   return { commands_list: { access_control: {} } };
 }
 
+// Функция для разделения команды и комментария
+function parseCommand(commandString) {
+  const parts = commandString.split(' - ');
+  const command = parts[0].trim();
+  const comment = parts.length > 1 ? parts[1].trim() : ''; // Комментарий может быть пустым
+  return { command, comment };
+}
+
 // Функция для проверки доступа
 function checkAccess(userLevel, command) {
   const commandsData = readCommands();
   const accessList = commandsData.commands_list.access_control;
 
   for (let level in accessList) {
-    if (accessList[level].includes(command)) {
-      return parseInt(level) <= userLevel;
+    const commands = accessList[level];
+    for (const commandString of commands) {
+      const { command: cmd } = parseCommand(commandString);
+      if (cmd === command) {
+        return parseInt(level) <= userLevel;
+      }
     }
   }
   return false;
@@ -41,32 +53,37 @@ function getCommandsForLevel(userLevel) {
 
   for (let level in accessList) {
     if (parseInt(level) <= userLevel) {
-      commands = commands.concat(accessList[level]);
+      const levelCommands = accessList[level];
+      for (const commandString of levelCommands) {
+        const { command, comment } = parseCommand(commandString);
+        commands.push(`${command} - ${comment}`);
+      }
     }
   }
   return commands;
 }
 
 // Функция для регистрации пользователя
-function registerUser(chatId, userId) {
+function registerUser(chatId, userId, userFirstName) {
   const db = readDatabase();
-  
-  if (db.chats[chatId] && db.chats[chatId].users_id[userId]) {
+
+  if (!db.chats[chatId]) {
+    db.chats[chatId] = { users_id: {} };
+  }
+
+  if (db.chats[chatId].users_id[userId]) {
     return "Вы уже зарегистрированы!";
   }
 
-  if (db.chats[chatId]) {
-    db.chats[chatId].users_id[userId] = {
-      data_registation: new Date().toISOString(),
-      user_first_name: "Имя пользователя",
-      user_id: userId,
-      access_control: 1
-    };
-    fs.writeFileSync(dbFilePath, JSON.stringify(db, null, 2), 'utf8');
-    return "Вы успешно зарегистрированы!";
-  }
-  
-  return "Не удалось зарегистрировать пользователя.";
+  db.chats[chatId].users_id[userId] = {
+    data_registation: "", // Дата регистрации не добавляется
+    user_first_name: userFirstName,
+    user_id: userId,
+    access_control: 2 // Устанавливаем уровень 2 при регистрации
+  };
+
+  writeDatabase(db);
+  return "Вы успешно зарегистрированы!";
 }
 
 // Обработчик для команды /help
@@ -110,10 +127,15 @@ function handleCommand(bot, msg) {
       let requiredLevel = null;
 
       for (let level in accessList) {
-        if (accessList[level].includes(command)) {
-          requiredLevel = parseInt(level);
-          break;
+        const commands = accessList[level];
+        for (const commandString of commands) {
+          const { command: cmd } = parseCommand(commandString);
+          if (cmd === command) {
+            requiredLevel = parseInt(level);
+            break;
+          }
         }
+        if (requiredLevel !== null) break;
       }
 
       if (requiredLevel !== null) {
