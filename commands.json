@@ -2,7 +2,7 @@
   "commands_list": {
     "access_control": {
       "1": [
-        "/help",
+        "/help - Выводит список команд",
         "/register"
       ],
       "2": [],
