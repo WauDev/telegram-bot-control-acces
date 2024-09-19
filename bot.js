@@ -5,6 +5,12 @@ const path = require('path');
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
+// Проверяем, что токен присутствует
+if (!token) {
+  console.error("Токен не найден в переменных окружения!");
+  process.exit(1);
+} else {console.info("Бот успешно запущен!")}
+
 // Путь к базе данных
 const dbFilePath = path.join(__dirname, 'database.json');
 const commandsFilePath = path.join(__dirname, 'commands.json');
